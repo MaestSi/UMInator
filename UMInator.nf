@@ -94,10 +94,6 @@ process candidateUMIsExtraction {
       <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq ) | cut -d " " -f1 \
       > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fasta
 
-      #evaluate candidate UMI min and max length
-      //UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
-      //UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
-
       #search candidate UMIs with approximate length between adapters and primers
       cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
       --discard-untrimmed --match-read-wildcards \
