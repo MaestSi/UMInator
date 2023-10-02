@@ -292,15 +292,15 @@ process QC {
 
     #concatenate files with the same UMI obtained from different reads chunks
     chunks_unbinned_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample}/ | grep unbinned_chunk);
-    cat \$chunks_unbinned_files > ${params.results_dir}/readsUMIsAssignment/${sample}/unbinned.fastq
+    unbinned_reads_files=${params.results_dir}/readsUMIsAssignment/${sample}/unbinned.fastq
+    cat \$chunks_unbinned_files > \$unbinned_reads_files
     rm \$chunks_unbinned_files
-    
-    #do QC plot for all reads
-    fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} | grep \"\\.fastq\")
-    NanoPlot -t ${task.cpus} --fastq \$fastq_files -o ${params.results_dir}/QC/${sample}/QC_all_reads
-
-    #do QC plot for all reads
     fastq_files_binned=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} | grep \"umi.*\\.fastq\")
+
+    #do QC plot for unbinned reads
+    NanoPlot -t ${task.cpus} --fastq \$unbinned_reads_files -o ${params.results_dir}/QC/${sample}/QC_unbinned_reads
+
+    #do QC plot for binned reads
     NanoPlot -t ${task.cpus} --fastq \$fastq_files_binned -o ${params.results_dir}/QC/${sample}/QC_binned_reads 
     
     #produce tsv files with read-UMI assignment stats
