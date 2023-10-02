@@ -61,23 +61,7 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --plurality                                                           MAFFT plurality value: minimum fraction of aligned reads supporting a basis for including it in the preliminary consensus
 --fast_alignment_flag                                                 Set fast_alignment_flag=1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag=0
 --medaka_model                                                        Medaka model for consensus polishing
-```
-
-## Pipeline testing
-                                                                                                                                                
-A test fastq dataset obtained with [DeepSimulator](https://github.com/liyu95/DeepSimulator) is provided. The datasets contains 1,000 reads simulating a heterozygous short tandem repeat expansion in DMPK gene.
-For full pipeline testing, set the following parsmeters:
-
-```                                                                                                                                                
---primerSeqOne="GCTCCGCAGGGGGGGCGGGTCTGGCCGGGAGGAGGGGCGGGGAACGGGCTAGAAAGTTTGCAGCAACTTTTCTCGAGCTTGCGTCCCAGGAGCGGATGCGC"
---primerSeqTwo="TTATCTAGGGAGATCCCGGAGGGAATCTGGTGAGGCCTGAACGGAGGGAGATCTGGGGCTGAATAAAGGGCTTCTGCCCTCTAAAGTCGCAAAGACGTAGG"
-```                                                                                                                                
-
-If the pipeline completes successfully, the following results are produced.                                                                                                                                 
-                                                                                                                                
-<p align="center">
-  <img src="Figures/Test_dataset_results.png" alt="drawing" width=800" title="Test_dataset_results">
-</p>                                            
+```                                                                                                                            
 
 ## Citation
 
