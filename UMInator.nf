@@ -38,6 +38,7 @@ def helpMessage() {
     --plurality                                                           MAFFT plurality value: minimum fraction of aligned reads supporting a basis for including it in the preliminary consensus
     --fast_alignment_flag                                                 Set fast_alignment_flag=1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag=0
     --medaka_model                                                        Medaka model for consensus polishing
+    --maxF                                                                Maximum forks
     """.stripIndent()
 }
 
@@ -200,6 +201,7 @@ process candidateUMIsFiltering {
 
 //readsUMIsAssignment
 process readsUMIsAssignment {
+  maxForks params.maxF
   input:
     val sample
     each path('readsChunk.fastq')
