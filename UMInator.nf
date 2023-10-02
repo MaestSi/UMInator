@@ -19,7 +19,7 @@ def helpMessage() {
     --fastq_files                                                         Path to fastq files, use wildcards to select multiple samples
     --results_dir                                                         Path to a folder where to store results
     --scripts_dir                                                         Directory containing all scripts
-    --UMIDesign                                                           "double" or "single", depending on whether reads have UMIs at both ends or not
+    --UMIDesign                                                          "double" or "single", depending on whether reads have UMIs at both ends or not
     --FW_adapter                                                          Forward adapter sequence
     --RV_adapter                                                          Reverse adapter sequence
     --FW_primer                                                           Forward primer sequence
@@ -28,7 +28,6 @@ def helpMessage() {
     --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
     --minLenOvlp                                                          Min overlap between read and adapter
     --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
-    --UMILenTol                                                           Tolerated candidate UMI discrepancy in length
     --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
     --UMIClustID                                                          UMI clustering identity
     --seedLen                                                             BWA seed length
@@ -96,11 +95,11 @@ process candidateUMIsExtraction {
       > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fasta
 
       #evaluate candidate UMI min and max length
-      UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
-      UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
+      //UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
+      //UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
 
       #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
+      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
       --discard-untrimmed --match-read-wildcards \
       -g ${params.FW_adapter}...${params.FW_primer} -g ${params.RV_adapter}...${params.RV_primer} \
       -G \$RV_primer_R...\$RV_adapter_R -G \$FW_primer_R...\$FW_adapter_R \
@@ -132,7 +131,7 @@ process candidateUMIsExtraction {
       UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
 
       #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
+      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
       --discard-untrimmed --match-read-wildcards \
       -g ${params.FW_adapter}...${params.FW_primer} \
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq \
@@ -280,7 +279,6 @@ process QC {
   input:
     val sample
   output:
-    val sample
   script:
   if(params.QC)
   """
@@ -347,7 +345,6 @@ process primersTrimming {
   input:
     val(sample)
   output:
-    val(sample)
   script:
   if(params.primersTrimming)
   """
@@ -397,13 +394,11 @@ workflow {
   //analyze binned reads with the same UMI in parallel: obtain Sample-UMI tuples for each reads chunk
   readsUMIsAssignment.out
   .groupTuple(by:0)
-  .multiMap { it ->
-    SN: it[0]
-    UMI: it[1]}
+  .map { it -> it[1]}
   .set{UMIs_tmp}
 
   //obtain unique couples of sampleName-UMI for each sample
-  UMIs_tmp.UMI
+  UMIs_tmp
   .flatten()
   .distinct()
   .splitCsv( sep: ' ')
