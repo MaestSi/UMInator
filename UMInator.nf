@@ -250,6 +250,7 @@ process readsUMIsAssignment {
 
 //draftConsensusCalling
 process draftConsensusCalling {
+  maxForks params.maxF
   input:
     tuple val(sample), val(UMI)
   output:
@@ -322,6 +323,7 @@ process QC {
 
 //consensusPolishing
 process consensusPolishing {
+  maxForks params.maxF
   input:
     tuple val(sample), val(UMI)
   output:
