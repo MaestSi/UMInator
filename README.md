@@ -50,7 +50,6 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
 --minLenOvlp                                                          Min overlap between read and adapter
 --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
---UMILenTol                                                           Tolerated candidate UMI discrepancy in length
 --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
 --UMIClustID                                                          UMI clustering identity
 --seedLen                                                             BWA seed length
