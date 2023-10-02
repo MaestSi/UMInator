@@ -122,10 +122,6 @@ process candidateUMIsExtraction {
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fastq \
       \$READS_START
 
-      #evaluate candidate UMI min and max length
-      UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
-      UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
-
       #search candidate UMIs with approximate length between adapters and primers
       cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
       --discard-untrimmed --match-read-wildcards \
