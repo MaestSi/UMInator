@@ -1,5 +1,5 @@
 # UMInator
-**UMInator** is a [Nextflow](https://www.nextflow.io) pipeline for generating consensus sequences from Nanopore reads tagged with UMIs. In particular, it builds a database of high-quality UMIs based on UMI structure, length and presence of flanking adapters and primers found in the reads, and bins them into files based on the match between candidate UMIs and high-quality UMIs. It then produces a draft consensus sequence for each UMI and polishes it using specialized software. Finally, it trims PCR primers, producing a set of high-quality consensus sequences.
+**UMInator** is a [Nextflow](https://www.nextflow.io) pipeline for generating consensus sequences from Nanopore reads tagged with UMIs. In particular, it first builds a database of high-quality UMIs based on UMI structure, length and presence of flanking adapters and PCR primers found in the reads. Then, it bins the reads into files based on the match between candidate UMIs and high-quality UMIs, and reads assigned to each UMI are collapsed to produce a consensus sequence. Finally, PCR primers are trimmed, producing a set of high-quality consensus sequences.
 
 ## Getting started
 
