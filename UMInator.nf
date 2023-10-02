@@ -377,7 +377,12 @@ process primersTrimming {
   """
   else
   """
-    echo "Skipped"
+    mkdir -p ${params.results_dir}/primersTrimming
+    mkdir -p ${params.results_dir}/primersTrimming/${sample}
+
+    #find consensus sequences for all UMIs of one sample and concatenate them
+    polished_consensus=\$(find ${params.results_dir}/consensusPolishing/${sample} | grep "_polished_consensus.fasta")
+    cat \$polished_consensus > ${params.results_dir}/primersTrimming/${sample}/${sample}_consensus_polished.fasta
   """
 }
 
