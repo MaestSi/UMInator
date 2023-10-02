@@ -297,7 +297,7 @@ process QC {
     cat \$chunks_unbinned_files > \$unbinned_reads_files
     rm \$chunks_unbinned_files
     fastq_files_binned=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} | grep \"umi.*\\.fastq\")
-    fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} | grep \"*\\.fastq\")
+    fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} | grep \".*\\.fastq\")
 
     #do QC plot for unbinned reads
     NanoPlot -t ${task.cpus} --fastq \$unbinned_reads_files -o ${params.results_dir}/QC/${sample}/QC_unbinned_reads
