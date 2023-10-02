@@ -59,9 +59,29 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --maxF                                                                Maximum forks
 ```                                                                                                                            
 
+## Pipeline testing
+
+The UMInator pipeline can be tested on a small subset of [Zymo mock rRNA data](https://github.com/SorenKarst/longread_umi/blob/master/test_data/test_reads.fq) available from [Karst et al.](https://www.nature.com/articles/s41592-020-01041-y) with the following command:
+
+```
+nextflow -c UMInator.conf run UMInator.nf \
+--FW_adapter="CAAGCAGAAGACGGCATACGAGAT" \
+--RV_adapter="AATGATACGGCGACCACCGAGATC" \
+--FW_primer="AGRGTTYGATYMTGGCTCAG" \
+--RV_primer="CGACATCGAGGTGCCAAAC" \
+--fastq_files=/path/to/test_reads.fastq \
+--results_dir=/path/to/results/dir \
+--min_UMI_freq=10 \
+--scripts_dir=/path/to/UMInator/scripts \
+--medaka_model=r941_min_high_g330 \
+-profile docker
+```
+
 ## Citation
 
 For further information, please refer to the following manuscripts and repositories:
+
+Karst, S.M., Ziels, R.M., Kirkegaard, R.H. et al. High-accuracy long-read amplicon sequences using unique molecular identifiers with Nanopore or PacBio sequencing. Nat Methods 18, 165–169 (2021). https://doi.org/10.1038/s41592-020-01041-y
 
 De Coster W, D'Hert S, Schultz DT, Cruts M, Van Broeckhoven C. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics. 2018;34(15):2666-2669. doi:10.1093/bioinformatics/bty149
 
