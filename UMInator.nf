@@ -19,7 +19,7 @@ def helpMessage() {
     --fastq_files                                                         Path to fastq files, use wildcards to select multiple samples
     --results_dir                                                         Path to a folder where to store results
     --scripts_dir                                                         Directory containing all scripts
-    --UMI design                                                          "double" or "single", depending on whether reads have UMIs at both ends or not
+    --UMI_design                                                          "double" or "single", depending on whether reads have UMIs at both ends or not
     --FW_adapter                                                          Forward adapter sequence
     --RV_adapter                                                          Reverse adapter sequence
     --FW_primer                                                           Forward primer sequence
