@@ -28,6 +28,7 @@ def helpMessage() {
     --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
     --minLenOvlp                                                          Min overlap between read and adapter
     --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
+    --UMILenTol                                                           Tolerated candidate UMI discrepancy in length
     --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
     --UMIClustID                                                          UMI clustering identity
     --seedLen                                                             BWA seed length
@@ -95,8 +96,12 @@ process candidateUMIsExtraction {
       <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq ) | cut -d " " -f1 \
       > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fasta
 
+      #evaluate candidate UMI min and max length
+      UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
+      UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
+
       #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
+      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
       --discard-untrimmed --match-read-wildcards \
       -g ${params.FW_adapter}...${params.FW_primer} -g ${params.RV_adapter}...${params.RV_primer} \
       -G \$RV_primer_R...\$RV_adapter_R -G \$FW_primer_R...\$FW_adapter_R \
@@ -123,8 +128,12 @@ process candidateUMIsExtraction {
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fastq \
       \$READS_START
 
+      #evaluate candidate UMI min and max length
+      UMIMinLen=\$(echo ${params.UMILen} - ${params.UMILenTol} | bc)
+      UMIMaxLen=\$(echo ${params.UMILen} + ${params.UMILenTol} | bc)
+
       #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
+      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
       --discard-untrimmed --match-read-wildcards \
       -g ${params.FW_adapter}...${params.FW_primer} \
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq \
