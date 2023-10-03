@@ -25,7 +25,7 @@ chmod 755 *
 
 ## Usage
 
-The CharONT2 pipeline requires you to open CharONT2.conf configuration file and set the desired options. Then, you can run the pipeline using either docker or singularity environments just specifying a value for the -profile variable.
+The **UMInator** pipeline requires you to open UMInator.conf configuration file and set the desired options. Then, you can run the pipeline using either docker or singularity environments just specifying a value for the -profile variable.
 
 ```
 Usage:
