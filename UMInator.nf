@@ -279,8 +279,6 @@ process QC {
   """
     mkdir -p ${params.results_dir}/QC
     mkdir -p ${params.results_dir}/QC/${sample}
-    mkdir -p ${params.results_dir}/QC/${sample}/QC_all_reads
-    mkdir -p ${params.results_dir}/QC/${sample}/QC_binned_reads
 
     #concatenate files with the same UMI obtained from different reads chunks
     chunks_unbinned_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample}/ | grep unbinned_chunk);
