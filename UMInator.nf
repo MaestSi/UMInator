@@ -103,8 +103,8 @@ process candidateUMIsExtraction {
       #search candidate UMIs with approximate length between adapters and primers
       cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
       --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter}...${params.FW_primer} -g ${params.RV_adapter}...${params.RV_primer} \
-      -G \$RV_primer_R...\$RV_adapter_R -G \$FW_primer_R...\$FW_adapter_R \
+      -g ${params.FW_adapter} -g ${params.RV_adapter} \
+      -G \$RV_primer_R -G \$FW_primer_R \
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_candidates.fastq \
       -p ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_candidates.fastq \
       \$READS_START \$READS_END
@@ -135,7 +135,7 @@ process candidateUMIsExtraction {
       #search candidate UMIs with approximate length between adapters and primers
       cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m \$UMIMinLen -M \$UMIMaxLen \
       --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter}...${params.FW_primer} \
+      -g ${params.FW_adapter} \
       -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq \
       \$READS_START 
     fi
