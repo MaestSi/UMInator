@@ -35,6 +35,8 @@ def helpMessage() {
     --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
     --target_reads_consensus                                              Maximum number of reads used for consensus calling
     --target_reads_polishing                                              Maximum number of reads used for consensus polishing
+    --fast_consensus_flag                                                 Set fast_consensus_flag = 1 for obtaining draft consensus with VSEARCH, instead of  MAFFT + EMBOSS cons
+    --fast_polishing_flag                                                 Set fast_polishing_flag = 1 for polishing with Racon, instead of Racon + Medaka
     --plurality                                                           MAFFT plurality value: minimum fraction of aligned reads supporting a basis for including it in the preliminary consensus
     --fast_alignment_flag                                                 Set fast_alignment_flag=1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag=0
     --medaka_model                                                        Medaka model for consensus polishing
@@ -261,7 +263,7 @@ process draftConsensusCalling {
     seqtk seq -A ${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fastq > ${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fasta
 
     #obtain draft consensus sequence
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Obtain_draft_consensus.R fastq_file=${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fastq TRC=${params.target_reads_consensus} PLUR=${params.plurality} num_threads=${task.cpus} fast_alignment_flag=${params.fast_alignment_flag} min_UMI_freq=${params.min_UMI_freq}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Obtain_draft_consensus.R fastq_file=${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fastq TRC=${params.target_reads_consensus} PLUR=${params.plurality} num_threads=${task.cpus} fast_alignment_flag=${params.fast_alignment_flag} fast_consensus_flag=${params.fast_consensus_flag} min_UMI_freq=${params.min_UMI_freq} 
   """
   else
   """
@@ -325,7 +327,7 @@ process consensusPolishing {
     mkdir -p ${params.results_dir}/consensusPolishing/${sample}
     
     #polish consensus sequence with racon and medaka
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Polish_consensus.R draft_consensus=${params.results_dir}/draftConsensusCalling/${sample}/${UMI}/${UMI}_draft_consensus.fasta fastq_file=${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fastq TRP=${params.target_reads_polishing}  num_threads=${task.cpus} medaka_model=${params.medaka_model}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Polish_consensus.R draft_consensus=${params.results_dir}/draftConsensusCalling/${sample}/${UMI}/${UMI}_draft_consensus.fasta fastq_file=${params.results_dir}/readsUMIsAssignment/${sample}/${UMI}.fastq TRP=${params.target_reads_polishing}  num_threads=${task.cpus} fast_polishing_flag=${params.fast_polishing_flag} medaka_model=${params.medaka_model}
   """
   else
   """
