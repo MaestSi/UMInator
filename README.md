@@ -53,6 +53,8 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
 --target_reads_consensus                                              Maximum number of reads used for consensus calling
 --target_reads_polishing                                              Maximum number of reads used for consensus polishing
+--fast_consensus_flag                                                 Set fast_consensus_flag = 1 for obtaining draft consensus with VSEARCH, instead of  MAFFT + EMBOSS cons
+--fast_polishing_flag                                                 Set fast_polishing_flag = 1 for polishing with Racon, instead of Racon + Medaka
 --plurality                                                           MAFFT plurality value: minimum fraction of aligned reads supporting a basis for including it in the preliminary consensus
 --fast_alignment_flag                                                 Set fast_alignment_flag=1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag=0
 --medaka_model                                                        Medaka model for consensus polishing
