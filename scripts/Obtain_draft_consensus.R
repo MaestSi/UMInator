@@ -80,7 +80,7 @@ Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alig
     } else {
        system(paste0("vsearch --threads ", num_threads, " --cluster_smallmem ", draft_reads_fa, " --usersort --id 0.75 --iddef 1 --strand both --clusterout_sort --consout ", draft_consensus_tmp1, " --minwordmatches 0"))
     }
-    system(paste0("cat ", draft_consensus_tmp1, " seqtk seq -A - | head -n2 | sed 's/[nN]//g' > ", draft_consensus_tmp2))
+    system(paste0("cat ", draft_consensus_tmp1, " | seqtk seq -A - | head -n2 | sed 's/[nN]//g' > ", draft_consensus_tmp2))
     DNAStringSet_obj <- readDNAStringSet(draft_consensus_tmp2, "fasta")
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
