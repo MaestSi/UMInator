@@ -27,11 +27,12 @@ for(v in args)
 #load BioStrings package
 suppressMessages(library(Biostrings))
 
-Polish_consensus <- function(draft_consensus, fastq_file, num_threads, TRP, medaka_model) {
+Polish_consensus <- function(draft_consensus, fastq_file, num_threads, TRP, fast_polishing_flag, medaka_model) {
   if (file.exists(draft_consensus)) {
     num_threads <- as.numeric(num_threads)
     TRP <- as.numeric(TRP)
     target_reads_polishing <- TRP
+    fast_polishing_flag <- as.numeric(fast_polishing_flag)
     fasta_file <- gsub(pattern = "\\.fastq", replacement = ".fasta", x = fastq_file)
     UMI_name <- gsub(pattern = "\\.fastq", replacement = "", x = basename(fastq_file))
     sample_name <- basename(dirname(fastq_file))
@@ -51,7 +52,7 @@ Polish_consensus <- function(draft_consensus, fastq_file, num_threads, TRP, meda
     }
     polishing_reads_fq <- paste0(UMI_dir, "/", UMI_name, "_polishing_", target_reads_polishing, "_reads.fastq")
     system(paste0("seqtk sample -s ", seed , " ", fastq_file, " ",  target_reads_polishing, " > ", polishing_reads_fq))
-    cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - UMI ", UMI_name), sep = "\n")
+    cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - ", UMI_name), sep = "\n")
     system(paste0("minimap2 -x ava-ont ", draft_consensus, " ", polishing_reads_fq, " > ", paf_file))
     system(paste0("racon -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq, " ", paf_file, " ", draft_consensus, " > ", racon_consensus))
     if (length(which(readLines(racon_consensus) != "")) == 0) {
@@ -59,10 +60,14 @@ Polish_consensus <- function(draft_consensus, fastq_file, num_threads, TRP, meda
       cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " - UMI ", UMI_name),  file = logfile, sep = "\n", append = TRUE)
       system(paste0("cp ", draft_consensus, " ", racon_consensus))
     }
-    cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - UMI ", UMI_name), sep = "\n")
-    system(paste0("medaka_consensus -i ", polishing_reads_fq, " -d ", racon_consensus, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", UMI_dir, "/medaka_consensus"))
-    system(paste0("cp ", UMI_dir, "/medaka_consensus/consensus.fasta ", consensus_polished))  
+    if (fast_polishing_flag != 1) {
+      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - ", UMI_name), sep = "\n")
+      system(paste0("medaka_consensus -i ", polishing_reads_fq, " -d ", racon_consensus, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", UMI_dir, "/medaka_consensus"))
+      system(paste0("cp ", UMI_dir, "/medaka_consensus/consensus.fasta ", consensus_polished))
+    } else {
+      system(paste0("cp ", racon_consensus, " ", consensus_polished))
+    }
   }
 }
 
-Polish_consensus(draft_consensus, fastq_file, num_threads, TRP, medaka_model)
+Polish_consensus(draft_consensus, fastq_file, num_threads, TRP, fast_polishing_flag, medaka_model)

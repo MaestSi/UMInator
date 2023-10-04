@@ -27,10 +27,11 @@ for(v in args)
 #load BioStrings package
 suppressMessages(library(Biostrings))
 
-Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alignment_flag, min_UMI_freq) {
+Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alignment_flag, fast_consensus_flag, min_UMI_freq) {
   TRC <- as.numeric(TRC)
   target_reads_consensus <- TRC
   PLUR <- as.numeric(PLUR)
+  fast_consensus_flag <- as.numeric(fast_consensus_flag)
   min_UMI_freq <- as.numeric(min_UMI_freq)
   num_threads <- as.numeric(num_threads)
   fast_alignment_flag <- as.numeric(fast_alignment_flag)
@@ -45,16 +46,16 @@ Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alig
   draft_consensus <- paste0(sample_dir, "/", UMI_name, "/", UMI_name, "_draft_consensus.fasta")
   num_reads_UMI <- as.double(system(paste0("cat ", fasta_file, " | grep \"^>\" | wc -l"), intern=TRUE))
   #create consensus sequence
-  #if not at least 3 reads are assigned to the allele, consensus calling is skipped
+  #if not at least min_UMI_freq reads are assigned to the UMI, consensus calling is skipped
   if (num_reads_UMI < min_UMI_freq) {
-    cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - UMI ", UMI_name, "; skipping consensus sequence generation"), sep = "\n")
-    cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - UMI ", UMI_name, "; skipping consensus sequence generation"),  file = logfile, sep = "\n", append = TRUE)
+    cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name, "; skipping consensus sequence generation"), sep = "\n")
+    cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name, "; skipping consensus sequence generation"),  file = logfile, sep = "\n", append = TRUE)
   } else {
     dir.create(UMI_dir)
     if (num_reads_UMI >= min_UMI_freq && num_reads_UMI < target_reads_consensus) {
       target_reads_consensus <- num_reads_UMI
-      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - UMI ", UMI_name), sep = "\n")
-      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - UMI ", UMI_name),  file = logfile, sep = "\n", append = TRUE)
+      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name), sep = "\n")
+      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name),  file = logfile, sep = "\n", append = TRUE)
     } 
     plurality_value <- PLUR*target_reads_consensus
     sequences <- readDNAStringSet(fasta_file, "fasta")
@@ -65,14 +66,21 @@ Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alig
     seed <- 1
     system(paste0("seqtk sample -s ", seed , " ", fastq_file, " ",  target_reads_consensus, " > ", draft_reads_fq))
     system(paste0("seqtk seq -A ", draft_reads_fq, " > ", draft_reads_fa))
-    mfa_file <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa)
-    if (fast_alignment_flag == 1) {
-      system(paste0("mafft --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
+    
+    #produce accurate draft consensus sequence with mafft + EMBOss cons
+    if(fast_consensus_flag != 1) {
+      mfa_file <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa)
+      if (fast_alignment_flag == 1) {
+        system(paste0("mafft --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
+      } else {
+        system(paste0("mafft -linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
+      }
+      system(paste0("cons -sequence ", mfa_file, " -plurality ", plurality_value, " -outseq ", draft_consensus_tmp1))
+    #produce fast draft consensus sequence with VSEARCH
     } else {
-      system(paste0("mafft -linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
+       system(paste0("vsearch --threads ", num_threads, " --cluster_smallmem ", draft_reads_fa, " --usersort --id 0.75 --iddef 1 --strand both --clusterout_sort --consout ", draft_consensus_tmp1, " --minwordmatches 0"))
     }
-    system(paste0("cons -sequence ", mfa_file, " -plurality ", plurality_value, " -outseq ", draft_consensus_tmp1))
-    system(paste0("sed 's/[nN]//g' ", draft_consensus_tmp1, " > ", draft_consensus_tmp2))
+    system(paste0("cat ", draft_consensus_tmp1, " | head -n2 | sed 's/[nN]//g' > ", draft_consensus_tmp2))
     DNAStringSet_obj <- readDNAStringSet(draft_consensus_tmp2, "fasta")
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
@@ -82,4 +90,4 @@ Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alig
   }
 }
 
-Obtain_draft_consensus(fastq_file, TRC, PLUR, num_threads, fast_alignment_flag, min_UMI_freq)
+Obtain_draft_consensus(fastq_file, TRC, PLUR, num_threads, fast_alignment_flag, fast_consensus_flag, min_UMI_freq)
