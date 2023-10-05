@@ -30,7 +30,7 @@ def helpMessage() {
     --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
     --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
     --UMIClustID                                                          UMI clustering identity
-    --seedLen                                                             BWA seed length
+    --maxDiff                                                             BWA aln maximum number of differences 
     --readsChunkSize                                                      Number of lines in each fastq split file (should be multiple of 4)
     --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
     --target_reads_consensus                                              Maximum number of reads used for consensus calling
@@ -168,14 +168,47 @@ process candidateUMIsFiltering {
     #dereplicate high-quality UMIs
     vsearch --derep_fulllength ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp2.fasta \
     --minseqlength \$totUMILen --sizeout --relabel umi --strand both \
-    --output ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp2_derep.fasta
+    --output ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp3.fasta
 
     #cluster dereplicated high-quality UMIs to obtain a database of high-quality UMIs
-    vsearch --cluster_smallmem ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp2_derep.fasta \
+    vsearch --cluster_smallmem ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp3.fasta \
     --usersort --id ${params.UMIClustID} --iddef 1 --strand both --clusterout_sort --minseqlength \$totUMILen \
-    --sizein --sizeout --consout ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
+    --sizein --sizeout --consout ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp4.fasta \
     --minwordmatches 0
 
+    #index the database of tmp high-quality UMIs
+    bwa index ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp4.fasta
+
+    #align candidate UMIs to tmp high-quality UMIs
+    bwa aln \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp4.fasta \
+    ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta \
+    -n ${params.maxDiff} \
+    -t ${task.cpus} \
+    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sai
+
+    bwa samse \
+    -n 10000000 \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp4.fasta \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sai \
+    ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta | \
+    samtools view -F 4 - \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sam
+
+    #retain only UMIs from the database that are supported by at least 3 reads
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sam \
+    | cut -f3 | sort | uniq -c | sort -nr | awk \'BEGIN {FS=\" \"} { if ( \$1 > 2 ) print "\t"\$2"\t"}\' \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3.txt
+
+    #extract from fasta only UMIs supported by at least 3 reads
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3.txt \
+    | cut -f2 > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3_noTab.txt
+
+    seqtk subseq ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp4.fasta \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3_noTab.txt \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
+
+    #re-align all reads on filtered database of high-quality UMIs
     #index the database of high-quality UMIs
     bwa index ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
 
@@ -183,7 +216,7 @@ process candidateUMIsFiltering {
     bwa aln \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
     ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta \
-    -l ${params.seedLen} \
+    -n ${params.maxDiff} \
     -t ${task.cpus} \
     -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sai
 
