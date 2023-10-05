@@ -289,6 +289,7 @@ process QC {
     fastq_files_binned=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \"umi.*\\.fastq\")
     fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \".*\\.fastq\")
     if [[ ! -z "\$fastq_files_binned" ]]; then
+      #cat \$fastq_files_binned > \$binned_reads_files
       for f in \$fastq_files_binned; do
         cat \$f >> \$binned_reads_files;
       done
