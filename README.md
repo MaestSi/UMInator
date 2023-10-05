@@ -48,7 +48,7 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
 --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
 --UMIClustID                                                          UMI clustering identity
---seedLen                                                             BWA seed length
+--maxDiff                                                             BWA aln maximum number of differences
 --readsChunkSize                                                      Number of lines in each fastq split file (should be multiple of 4)
 --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
 --target_reads_consensus                                              Maximum number of reads used for consensus calling
