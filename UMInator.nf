@@ -315,7 +315,7 @@ process QC {
     mkdir -p ${params.results_dir}/QC
     mkdir -p ${params.results_dir}/QC/${sample}
     #concatenate files with the same UMI obtained from different reads chunks
-    chunks_unbinned_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample}/ -name \"unbinned_chunk\");
+    chunks_unbinned_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample}/ -name \"*unbinned_chunk*\");
     unbinned_reads_files=${params.results_dir}/readsUMIsAssignment/${sample}/unbinned.fastq
     binned_reads_files=${params.results_dir}/readsUMIsAssignment/${sample}/binned.fastq
     if [[ -f "\$chunks_unbinned_files" ]]; then cat \$chunks_unbinned_files > \$unbinned_reads_files; rm \$chunks_unbinned_files; fi
