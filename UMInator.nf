@@ -286,8 +286,8 @@ process QC {
     unbinned_reads_files=${params.results_dir}/readsUMIsAssignment/${sample}/unbinned.fastq
     binned_reads_files=${params.results_dir}/readsUMIsAssignment/${sample}/binned.fastq
     if [[ -f "\$chunks_unbinned_files" ]]; then cat \$chunks_unbinned_files > \$unbinned_reads_files; rm \$chunks_unbinned_files; fi
-    fastq_files_binned=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \"umi.*\\.fastq\")
-    fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \".*\\.fastq\")
+    fastq_files_binned=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \"umi*\\.fastq\")
+    fastq_files=\$(find ${params.results_dir}/readsUMIsAssignment/${sample} -name \"*\\.fastq\")
     if [[ ! -z "\$fastq_files_binned" ]]; then
       #cat \$fastq_files_binned > \$binned_reads_files
       for f in \$fastq_files_binned; do
