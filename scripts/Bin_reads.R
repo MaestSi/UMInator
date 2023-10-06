@@ -27,15 +27,15 @@ for(v in args)
 #load BioStrings package
 suppressMessages(library(Biostrings))
 
-Bin_reads <- function(fastq_file, alignments_file, outdir) {
+Bin_reads <- function(fastq_file, map_file, outdir) {
   #read fastq file
   fastq_reads <- readDNAStringSet(filepath = fastq_file, format = "fastq", with.qualities = TRUE)
   names(fastq_reads) <- gsub(x = names(fastq_reads), pattern = " .*", replacement = "")
   #read alignments file
-  num_cols <- max(count.fields(alignments_file, sep = "\t"))
-  alignments <- read.table(alignments_file, header = FALSE, sep = "\t", quote = "", fill = TRUE, comment.char = "", colClasses = c("character", "NULL", "character", rep("NULL", num_cols - 3)))
-  reads <- alignments[, 1]
-  UMIs <- gsub(x = gsub(x = alignments[, 2], pattern = "centroid=", replacement = ""), pattern = ";.*", replacement = "")
+  num_cols <- max(count.fields(map_file, sep = "\t"))
+  map <- read.table(map_file, header = FALSE, sep = "\t")
+  reads <- map[, 1]
+  UMIs <- gsub(x = gsub(x = map[, 2], pattern = "centroid=", replacement = ""), pattern = ";.*", replacement = "")
   #assign reads to UMIs
   data <- data.frame(reads, UMIs)
   data_split <- split(data$reads, data$UMIs)
@@ -63,4 +63,4 @@ Bin_reads <- function(fastq_file, alignments_file, outdir) {
   }
 }
 
-Bin_reads(fastq_file, alignments_file, outdir)
+Bin_reads(fastq_file, map_file, outdir)
