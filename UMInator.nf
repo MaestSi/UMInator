@@ -208,11 +208,10 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3_noTab.txt \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
 
-    #re-align all reads on filtered database of high-quality UMIs
     #index the database of high-quality UMIs
     bwa index ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
 
-    #align candidate UMIs to high-quality UMIs
+    #re-align candidate UMIs on filtered database of high-quality UMIs
     bwa aln \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
     ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta \
