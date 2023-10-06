@@ -185,10 +185,27 @@ process candidateUMIsFiltering {
     #split the database of high-quality UMIs in part 1 and part 2
     #trim UMILen from right
     seqtk trimfq -e ${params.UMILen} ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_fw.fasta
+
+    seqtk seq -r ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_fw.fasta \
+    | sed \'/^>/ s/\$/_rc/\' > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_rv.fasta
 
     #trim UMILen from left
     seqtk trimfq -b ${params.UMILen} ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_fw.fasta
+
+    seqtk seq -r ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_fw.fasta \
+    | sed \'/^>/ s/\$/_rc/\' > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_rv.fasta
+    
+    #concatenate UMI1 and reverse complement of UMI2
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_fw.fasta \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_rv.fasta \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta
+
+   
+    #concatenate UMI2 and reverse complement of UMI1
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_fw.fasta \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_rv.fasta \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta
 
     #align high-quality UMIs (part 1 and part 2) to the terminal portion of reads
@@ -220,7 +237,7 @@ process candidateUMIsFiltering {
     \$READS_START_FA \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sai \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta | \
-    samtools view -F 4 - \
+    samtools view -F 20 - \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sam
 
     #map UMI_db_p2 to reads end
@@ -236,7 +253,7 @@ process candidateUMIsFiltering {
     \$READS_END_FA \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sai \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta | \
-    samtools view -F 4 - \
+    samtools view -F 20 - \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sam
 
     #filter alignments
@@ -335,11 +352,15 @@ process QC {
     fi
     
     #do QC plot for unbinned reads
-    NanoPlot -t ${task.cpus} --fastq \$unbinned_reads_files -o ${params.results_dir}/QC/${sample}/QC_unbinned_reads
-    
+    if [[ -f "\$unbinned_reads_files" ]]; then
+      NanoPlot -t ${task.cpus} --fastq \$unbinned_reads_files -o ${params.results_dir}/QC/${sample}/QC_unbinned_reads
+    fi
+
     #do QC plot for binned reads
-    NanoPlot -t ${task.cpus} --fastq \$binned_reads_files -o ${params.results_dir}/QC/${sample}/QC_binned_reads 
-    rm \$binned_reads_files
+    if [[ -f "\$binned_reads_files" ]]; then
+      NanoPlot -t ${task.cpus} --fastq \$binned_reads_files -o ${params.results_dir}/QC/${sample}/QC_binned_reads 
+      rm \$binned_reads_files
+    fi
     
     #produce tsv files with read-UMI assignment stats
     for f in \$fastq_files; do
