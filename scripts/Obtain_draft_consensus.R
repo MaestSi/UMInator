@@ -54,8 +54,8 @@ Obtain_draft_consensus <- function(fastq_file, TRC, PLUR, num_threads, fast_alig
     dir.create(UMI_dir)
     if (num_reads_UMI >= min_UMI_freq && num_reads_UMI < target_reads_consensus) {
       target_reads_consensus <- num_reads_UMI
-      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name), sep = "\n")
-      cat(text = paste0("WARNING: Only ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name),  file = logfile, sep = "\n", append = TRUE)
+      cat(text = paste0("WARNING: ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name), sep = "\n")
+      cat(text = paste0("WARNING: ", num_reads_UMI, " reads available for sample ", sample_name, " - ", UMI_name),  file = logfile, sep = "\n", append = TRUE)
     } 
     plurality_value <- PLUR*target_reads_consensus
     sequences <- readDNAStringSet(fasta_file, "fasta")
