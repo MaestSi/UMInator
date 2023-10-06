@@ -19,7 +19,6 @@ def helpMessage() {
     --fastq_files                                                         Path to fastq files, use wildcards to select multiple samples
     --results_dir                                                         Path to a folder where to store results
     --scripts_dir                                                         Directory containing all scripts
-    --UMIDesign                                                          "double" or "single", depending on whether reads have UMIs at both ends or not
     --FW_adapter                                                          Forward adapter sequence
     --RV_adapter                                                          Reverse adapter sequence
     --FW_primer                                                           Forward primer sequence
@@ -27,10 +26,12 @@ def helpMessage() {
     --searchLen                                                           Amount of bases at the beginning and end of each read to search for UMIs
     --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
     --minLenOvlp                                                          Min overlap between read and adapter
-    --UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
-    --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
+    --UMILen                                                              UMI length (before merging UMI1 and UMI2)
+    --UMIPattern                                                          UMI structure (after merging UMI1 and UMI2) in the form of a regex of the type: [nucl.]{cardinality}
     --UMIClustID                                                          UMI clustering identity
     --maxDiff                                                             BWA aln maximum number of differences 
+    --max_NM_mean                                                         Maximum tolerated mean mapping difference between UMI and query reads
+    --max_NM_sd                                                           Maximum tolerated sd of mapping difference between UMI and query reads
     --readsChunkSize                                                      Number of reads in each fastq split file
     --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
     --target_reads_consensus                                              Maximum number of reads used for consensus calling
@@ -76,65 +77,42 @@ process candidateUMIsExtraction {
     RV_adapter_R=\$(echo -e \">tmp\\n\" ${params.RV_adapter} | seqtk seq -r - | grep -v \"^>\" | tr -d ' ')
 
     #double UMI design
-    if [[ ${params.UMIDesign} == "double" ]]; then
-      #obtain first and last bases of reads
-      READS_START=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
-      READS_END=${params.results_dir}/candidateUMIsExtraction/${sample}/last_${params.searchLen}bp.fastq
-      seqtk trimfq -L ${params.searchLen} ${fastq} > \$READS_START
-      seqtk seq -r ${fastq} | seqtk trimfq -L ${params.searchLen} - | seqtk seq -r - > \$READS_END
+    #obtain first and last bases of reads
+    READS_START=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
+    READS_END=${params.results_dir}/candidateUMIsExtraction/${sample}/last_${params.searchLen}bp.fastq
+    seqtk trimfq -L ${params.searchLen} ${fastq} > \$READS_START
+    seqtk seq -r ${fastq} | seqtk trimfq -L ${params.searchLen} - | seqtk seq -r - > \$READS_END
     
-      #search candidate UMIs with exact length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
-      --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter}...${params.FW_primer} -g ${params.RV_adapter}...${params.RV_primer} \
-      -G \$RV_primer_R...\$RV_adapter_R -G \$FW_primer_R...\$FW_adapter_R \
-      -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_db_tmp1.fastq \
-      -p ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq \
-      \$READS_START \$READS_END
+    #search candidate UMIs with exact length between adapters and primers
+    cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
+    --discard-untrimmed --match-read-wildcards \
+    -g ${params.FW_adapter}...${params.FW_primer} -g ${params.RV_adapter}...${params.RV_primer} \
+    -G \$RV_primer_R...\$RV_adapter_R -G \$FW_primer_R...\$FW_adapter_R \
+    -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_db_tmp1.fastq \
+    -p ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq \
+    \$READS_START \$READS_END
 
-      #collapse the 5' and 3' end UMIs of each read
-      paste -d "" <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_db_tmp1.fastq ) \
-      <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq ) | cut -d " " -f1 \
-      > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fasta
+    #collapse the 5' and 3' end UMIs of each read
+    paste -d "" <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_db_tmp1.fastq ) \
+    <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_db_tmp1.fastq ) | cut -d " " -f1 \
+    > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fasta
 
-      #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
-      --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter} -g ${params.RV_adapter} \
-      -G \$RV_primer_R -G \$FW_primer_R \
-      -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_candidates.fastq \
-      -p ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_candidates.fastq \
-      \$READS_START \$READS_END
+    #search candidate UMIs with approximate length between adapters and primers
+    cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
+    --discard-untrimmed --match-read-wildcards \
+    -g ${params.FW_adapter} -g ${params.RV_adapter} \
+    -G \$RV_primer_R -G \$FW_primer_R \
+    -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_candidates.fastq \
+    -p ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_candidates.fastq \
+    \$READS_START \$READS_END
 
-      #collapse the 5' and 3' end UMIs of each read
-      paste -d "" <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_candidates.fastq ) \
-      <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_candidates.fastq ) |  \
-      cut -d " " -f1 > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq
+    #collapse the 5' and 3' end UMIs of each read
+    paste -d "" <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part1_candidates.fastq ) \
+    <( sed -n '1~4s/^@/>/p;2~4p' ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_part2_candidates.fastq ) |  \
+    cut -d " " -f1 > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq
       
-    #single UMI design
-    else
-      #obtain first bases at both ends of reads
-      READS_START=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
-      seqtk trimfq -L ${params.searchLen} ${fastq} > \$READS_START
-      seqtk seq -r ${fastq} | seqtk trimfq -L ${params.searchLen} | sed s\'/>/>RC_/\' - >> \$READS_START
-    
-      #search candidate UMIs with exact length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
-      --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter}...${params.FW_primer} \
-      -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_db_tmp1.fastq \
-      \$READS_START
-
-      #search candidate UMIs with approximate length between adapters and primers
-      cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -l ${params.UMILen} \
-      --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_adapter} \
-      -o ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq \
-      \$READS_START 
-    fi
-      #convert UMI candidates to fasta
-      seqtk seq -A ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta
-    
+    #convert UMI candidates to fasta
+    seqtk seq -A ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fastq > ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta
   """
   else
   """
@@ -159,12 +137,8 @@ process candidateUMIsFiltering {
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp2.fasta
 
     #evaluate the total UMI length (UMI1 + UMI2)
-    if [[ ${params.UMIDesign} == "double" ]]; then
-      totUMILen=\$(echo 2*${params.UMILen} | bc)
-    else
-      totUMILen=${params.UMILen}
-    fi
-
+    totUMILen=\$(echo 2*${params.UMILen} | bc)
+    
     #dereplicate high-quality UMIs
     vsearch --derep_fulllength ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_tmp2.fasta \
     --minseqlength \$totUMILen --sizeout --relabel umi --strand both \
@@ -208,34 +182,65 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3_noTab.txt \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
 
-    #index the database of high-quality UMIs
-    bwa index ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta
+    #split the database of high-quality UMIs in part 1 and part 2
+    #trim UMILen from right
+    seqtk trimfq -e ${params.UMILen} ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta
 
-    #re-align candidate UMIs on filtered database of high-quality UMIs
+    #trim UMILen from left
+    seqtk trimfq -b ${params.UMILen} ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta
+
+    #align high-quality UMIs (part 1 and part 2) to the terminal portion of reads
+    READS_START_FQ=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
+    READS_START_FA=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fasta
+    READS_END_FQ=${params.results_dir}/candidateUMIsExtraction/${sample}/last_${params.searchLen}bp.fastq
+    READS_END_FA=${params.results_dir}/candidateUMIsExtraction/${sample}/last_${params.searchLen}bp.fasta
+    
+    #convert fastq to fasta
+    seqtk seq -A \$READS_START_FQ > \$READS_START_FA
+    seqtk seq -A \$READS_END_FQ > \$READS_END_FA
+
+    #index db
+    bwa index \$READS_START_FA
+    bwa index \$READS_END_FA
+
+    maxDiffSingle=\$(echo ${params.maxDiff}/2 | bc)
+    
+    #map UMI_db_p1 to reads start
     bwa aln \
-    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
-    ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta \
-    -n ${params.maxDiff} \
+    \$READS_START_FA \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta \
+    -n \$maxDiffSingle \
     -t ${task.cpus} \
-    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sai
+    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sai
 
     bwa samse \
     -n 10000000 \
-    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db.fasta \
-    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sai \
-    ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta | \
+    \$READS_START_FA \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sai \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta | \
     samtools view -F 4 - \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sam
 
-    #retain only reads that map to a single UMI
-    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam \
-    | cut -f1 | sort | uniq -c | sort -nr | awk \'BEGIN {FS=\" \"} { if ( \$1 == 1 ) print \$2"\t"}\' | sed \'s/>//\' | sort \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/Reads_ids_single_UMI.txt
+    #map UMI_db_p2 to reads end
+    bwa aln \
+    \$READS_END_FA \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta \
+    -n \$maxDiffSingle \
+    -t ${task.cpus} \
+    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sai
 
-    #retain only alignments corresponding to filtered UMIs
-    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam \
-    | grep -f ${params.results_dir}/candidateUMIsFiltering/${sample}/Reads_ids_single_UMI.txt \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam
+    bwa samse \
+    -n 10000000 \
+    \$READS_END_FA \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sai \
+    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta | \
+    samtools view -F 4 - \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sam
+
+    #filter alignments
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Filter_UMIs.R alignment_file_1=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sam alignment_file_2=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sam map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt max_NM_mean=${params.max_NM_mean} max_NM_sd=${params.max_NM_sd}
   """
   else
   """
@@ -260,10 +265,10 @@ process readsUMIsAssignment {
     readsCurrChunk=\$(realpath readsChunk.fastq)
 
     #read the current chunk of reads and, if a read matches a single UMI, assign it to it
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunk alignments_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam outdir=${params.results_dir}/readsUMIsAssignment/${sample}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunk map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
 
     #extract all UMIs
-    UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam | cut -f3 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
+    UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
 
     #add sample name before UMI ID
     sn=${sample}
