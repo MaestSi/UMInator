@@ -227,6 +227,16 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsExtraction/${sample}/UMI_candidates.fasta | \
     samtools view -F 4 - \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam
+
+    #retain only reads that map to a single UMI
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam \
+    | cut -f1 | sort | uniq -c | sort -nr | awk \'BEGIN {FS=\" \"} { if ( \$1 == 1 ) print \$2"\t"}\' | sed \'s/>//\' | sort \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/Reads_ids_single_UMI.txt
+
+    #retain only alignments corresponding to filtered UMIs
+    cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam \
+    | grep -f ${params.results_dir}/candidateUMIsFiltering/${sample}/Reads_ids_single_UMI.txt \
+    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam
   """
   else
   """
@@ -248,25 +258,17 @@ process readsUMIsAssignment {
     mkdir -p ${params.results_dir}/readsUMIsAssignment
     mkdir -p ${params.results_dir}/readsUMIsAssignment/${sample}
     
-    readsCurrChunk=\$(basename \$(realpath readsChunk.fastq))
+    readsCurrChunk=\$(realpath readsChunk.fastq)
 
-    #read the current chunk of reads and, if a read matches to a single UMI, assign it to it
-    cat readsChunk.fastq | while read -r l; do
-      read_id=\$(echo \$l | sed \'s/^@//\' | cut -d \' \' -f1);
-      UMI_curr_chunk=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam | cut -f1,3 | grep -P "\$read_id\t" | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\');
-      Matches=\$(echo \$UMI_curr_chunk | grep \"umi\" -o | wc -l);
-      if [ -z \"\$UMI_curr_chunk\" ] || [ \"\$Matches\" -gt 1 ]; then UMI_curr_chunk=unbinned; fi;
-        echo @\$read_id >> ${params.results_dir}/readsUMIsAssignment/${sample}/\$UMI_curr_chunk\"_chunk_\"\$readsCurrChunk
-        read -r l; printf \'%s\n\' \$l >> ${params.results_dir}/readsUMIsAssignment/${sample}/\$UMI_curr_chunk\"_chunk_\"\$readsCurrChunk
-        read -r l; printf \'%s\n\' \$l >> ${params.results_dir}/readsUMIsAssignment/${sample}/\$UMI_curr_chunk\"_chunk_\"\$readsCurrChunk
-        read -r l; printf \'%s\n\' \$l >> ${params.results_dir}/readsUMIsAssignment/${sample}/\$UMI_curr_chunk\"_chunk_\"\$readsCurrChunk
-      done
-      #extract all UMIs
-      UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map.sam | cut -f3 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
+    #read the current chunk of reads and, if a read matches a single UMI, assign it to it
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunk alignments_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam outdir=${params.results_dir}/readsUMIsAssignment/${sample}
 
-      #add sample name before UMI ID
-      sn=${sample}
-      UMI_all=\$(echo \$UMI_all_tmp | sed \"s/umi/\$sn\"\\|umi\"/g\")
+    #extract all UMIs
+    UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_filtered.sam | cut -f3 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
+
+    #add sample name before UMI ID
+    sn=${sample}
+    UMI_all=\$(echo \$UMI_all_tmp | sed \"s/umi/\$sn\"\\|umi\"/g\")
   """
   else
   """
