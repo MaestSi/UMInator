@@ -37,7 +37,6 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --fastq_files                                                         Path to fastq files, use wildcards to select multiple samples
 --results_dir                                                         Path to a folder where to store results
 --scripts_dir                                                         Directory containing all scripts
---UMI_design                                                          "double" or "single", depending on whether reads have UMIs at both ends or not
 --FW_adapter                                                          Forward adapter sequence
 --RV_adapter                                                          Reverse adapter sequence
 --FW_primer                                                           Forward primer sequence
@@ -45,8 +44,8 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --searchLen                                                           Amount of bases at the beginning and end of each read to search for UMIs
 --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
 --minLenOvlp                                                          Min overlap between read and adapter
---UMILen                                                              UMI length (before merging UMI1 and UMI2 in case of double UMI design)
---UMIPattern                                                          UMI structure (after merging UMI1 and UMI2, in case of double UMI design) in the form of a regex of the type: [nucl.]{cardinality}
+--UMILen                                                              UMI length (before merging UMI1 and UMI2)
+--UMIPattern                                                          UMI structure (after merging UMI1 and UMI2) in the form of a regex of the type: [nucl.]{cardinality}
 --UMIClustID                                                          UMI clustering identity
 --maxDiff                                                             BWA aln maximum number of differences
 --readsChunkSize                                                      Number of reads in each fastq split file
