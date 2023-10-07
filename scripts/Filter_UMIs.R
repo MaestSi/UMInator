@@ -24,9 +24,6 @@ for(v in args)
   assign(vTmp[[1]],vTmp[[2]])
 }
 
-#load BioStrings package
-suppressMessages(library(Biostrings))
-
 #from UMI -> reads to read -> UMIs
 Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
   matches_list <- vector("list", nrow(alignment))
@@ -55,12 +52,15 @@ Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
     #create a dataframe with the current set of matches
     matches_list[[i]] <- data.frame(read_name = c(prim_al_read_name, sec_al_read_name), UMI_name, UMI_size, NM = c(prim_al_NM, sec_al_NM), maxDiff_flag)
   }
+  cat(sprintf("Converting list of dataframes to dataframe\n"))
   matches <- do.call("rbind", matches_list)
   #sort by read name, NM and UMI_size
   matches <- matches[with(matches, order(read_name, NM, -UMI_size)), ]
   #for each read, keep only the UMI with the lowest NM or the higher UMI size in case of ties
   tmp <- lapply(split(matches, matches$read_name), function(x) data.frame(x[1, ]))
   matches_best_hit <- do.call("rbind", tmp)
+  num_filtout <- length(matches_best_hit$maxDiff_flag == "discard")
+  cat(sprintf("Filtering out %d alignments, due to NM not satisfying conditions\n", num_filtout))
   matches_best_hit <- matches_best_hit[matches_best_hit$maxDiff_flag == "keep", ]
   return(matches_best_hit)
 }
@@ -78,8 +78,12 @@ Filter_UMIs <- function(alignment_file_1, alignment_file_2, map_file, max_NM_mea
   matches_2 <- Reformat_alignment(alignment_2, max_NM_mean, max_NM_sd)
   #merge the two dataframes
   reads_both_matches <- intersect(matches_1$read_name, matches_2$read_name)
-  matches_1_2 <- data.frame(read_name = reads_both_matches, UMI_name_1 = matches_1$UMI_name, UMI_name_2 = matches_2$UMI_name)
+  matches_1_subset <- matches_1[reads_both_matches, ]
+  matches_2_subset <- matches_2[reads_both_matches, ]
+  matches_1_2 <- data.frame(read_name = reads_both_matches, UMI_name_1 = matches_1_subset$UMI_name, UMI_name_2 = matches_2_subset$UMI_name)
   #retain the read only in case both start and end map to the same UMI
+  num_filtout <- length(which(matches_1_2$UMI_name_1 != matches_1_2$UMI_name_2))
+  cat(sprintf("Filtering out %d reads, due to different best match for UMI1 and UMI2\n", num_filtout))
   matches_1_2 <- matches_1_2[which(matches_1_2$UMI_name_1 == matches_1_2$UMI_name_2), ]
   map <- matches_1_2[, c(1, 2)]
   #write to file
