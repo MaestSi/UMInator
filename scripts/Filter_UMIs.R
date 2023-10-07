@@ -29,13 +29,15 @@ suppressMessages(library(Biostrings))
 
 #from UMI -> reads to read -> UMIs
 Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
+  matches_list <- vector("list", nrow(alignment))
   matches <- c() 
   #cycle across alignments
   for (i in 1:nrow(alignment)) {
     #extract current alignment
     UMI_curr_alignment <- alignment[i, ]
+    cat(sprintf("Processing alignment #%d\n", i))
     #extract UMI name, size, reads alignments and NM
-    UMI_name <- UMI_curr_alignment[[1]]
+    UMI_name <- gsub(x = UMI_curr_alignment[[1]], pattern = "_rc", replacement = "")
     UMI_size <- as.numeric(gsub(x = UMI_name, pattern = ".*;size=", replacement = ""))
     prim_al_read_name <- UMI_curr_alignment[[2]]
     prim_al_NM <- as.numeric(gsub(pattern = "NM:i:", replacement = "", x = UMI_curr_alignment[[3]]))
@@ -51,9 +53,9 @@ Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
       maxDiff_flag <- "discard"
     }
     #create a dataframe with the current set of matches
-    matches_curr <- data.frame(read_name = c(prim_al_read_name, sec_al_read_name), UMI_name, UMI_size, NM = c(prim_al_NM, sec_al_NM), maxDiff_flag)
-    matches <- rbind(matches, matches_curr)
+    matches_list[[i]] <- data.frame(read_name = c(prim_al_read_name, sec_al_read_name), UMI_name, UMI_size, NM = c(prim_al_NM, sec_al_NM), maxDiff_flag)
   }
+  matches <- do.call("rbind", matches_list)
   #sort by read name, NM and UMI_size
   matches <- matches[with(matches, order(read_name, NM, -UMI_size)), ]
   #for each read, keep only the UMI with the lowest NM or the higher UMI size in case of ties
