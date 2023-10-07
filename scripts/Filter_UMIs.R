@@ -59,8 +59,8 @@ Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
   #for each read, keep only the UMI with the lowest NM or the higher UMI size in case of ties
   tmp <- lapply(split(matches, matches$read_name), function(x) data.frame(x[1, ]))
   matches_best_hit <- do.call("rbind", tmp)
-  num_filtout <- length(matches_best_hit$maxDiff_flag == "discard")
-  cat(sprintf("Filtering out %d alignments, due to NM not satisfying conditions\n", num_filtout))
+  num_filtout <- unique(matches_best_hit[matches_best_hit$maxDiff_flag == "discard", "UMI_name"])
+  cat(sprintf("Filtering out %d UMIs, due to NM not satisfying conditions\n", num_filtout))
   matches_best_hit <- matches_best_hit[matches_best_hit$maxDiff_flag == "keep", ]
   return(matches_best_hit)
 }
