@@ -50,7 +50,6 @@ Other mandatory arguments which may be specified in the UMInator.conf file
 --maxDiff                                                             BWA aln maximum number of differences
 --max_NM_mean                                                         Maximum tolerated mean mapping difference between UMI and query reads
 --max_NM_sd                                                           Maximum tolerated sd of mapping difference between UMI and query reads
---readsChunkSize                                                      Number of reads in each fastq split file
 --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
 --target_reads_consensus                                              Maximum number of reads used for consensus calling
 --target_reads_polishing                                              Maximum number of reads used for consensus polishing
