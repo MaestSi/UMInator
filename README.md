@@ -73,6 +73,9 @@ nextflow -c UMInator.conf run UMInator.nf \
 --RV_primer="CGACATCGAGGTGCCAAAC" \
 --fastq_files=/path/to/test_reads.fastq \
 --results_dir=/path/to/results/dir \
+--minQ=7 \
+--minLen=3000 \
+--maxLen=6000 \
 --min_UMI_freq=10 \
 --scripts_dir=/path/to/UMInator/scripts \
 --medaka_model=r941_min_high_g330 \
