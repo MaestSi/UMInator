@@ -147,9 +147,9 @@ process candidateUMIsExtraction {
 //candidateUMIsFiltering
 process candidateUMIsFiltering {
   input:
-    val(sample)
+    val sample
   output:
-    val(sample)
+    val sample
   script:
   if(params.candidateUMIsFiltering)
   """
