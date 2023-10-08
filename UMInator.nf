@@ -35,7 +35,6 @@ def helpMessage() {
     --maxDiff                                                             BWA aln maximum number of differences 
     --max_NM_mean                                                         Maximum tolerated mean mapping difference between UMI and query reads
     --max_NM_sd                                                           Maximum tolerated sd of mapping difference between UMI and query reads
-    --readsChunkSize                                                      Number of reads in each fastq split file
     --min_UMI_freq                                                        Minimum number of reads assigned to UMI for generating a consensus sequence
     --target_reads_consensus                                              Maximum number of reads used for consensus calling
     --target_reads_polishing                                              Maximum number of reads used for consensus polishing
@@ -65,7 +64,7 @@ process readsFiltering {
   input:
     tuple val(sample), val(fastq)
   output:
-    tuple val(sample), val(fastq)
+    val sample
   script:
   if(params.readsFiltering)
   """
@@ -85,9 +84,9 @@ process readsFiltering {
 // candidateUMIsExtraction
 process candidateUMIsExtraction {
   input:
-    tuple val(sample), val(fastq)
+    val sample
   output:
-    tuple val(sample), val(fastq)
+    val sample
   script:
   if(params.candidateUMIsExtraction)
   """
@@ -148,7 +147,7 @@ process candidateUMIsExtraction {
 //candidateUMIsFiltering
 process candidateUMIsFiltering {
   input:
-    tuple val(sample), val(fastq)
+    val(sample)
   output:
     val(sample)
   script:
@@ -227,7 +226,6 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_rv.fasta \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta
 
-   
     #concatenate UMI2 and reverse complement of UMI1
     cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2_fw.fasta \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_rv.fasta \
@@ -295,7 +293,6 @@ process readsUMIsAssignment {
   maxForks params.maxF
   input:
     val sample
-    each path('readsChunk.fastq')
   output:
     tuple val(sample), env(UMI_all)
   script:
@@ -303,14 +300,9 @@ process readsUMIsAssignment {
   """
     mkdir -p ${params.results_dir}/readsUMIsAssignment
     mkdir -p ${params.results_dir}/readsUMIsAssignment/${sample}
-    
-    readsCurrChunk=\$(realpath readsChunk.fastq)
-    readsCurrChunkFilt=\$(echo \$readsCurrChunk | sed \'s/\\.fastq/_filt.fastq/\')
-     
-    cat \$readsCurrChunk | NanoFilt -q ${params.minQ} --length ${params.minLen} --maxlength ${params.maxLen} > \$readsCurrChunkFilt
 
-    #read the current chunk of reads and, if a read matches a single UMI, assign it to it
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunkFilt map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
+    #read the current fastq file and, if a read matches a single UMI, assign it to it
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
 
     #extract all UMIs
     UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
@@ -481,14 +473,8 @@ workflow {
   //filter candidate UMIs to buid db of high-confidence UMIs
   candidateUMIsFiltering(candidateUMIsExtraction.out)
   
-  //split reads into chunks
-  Channel
-  .fromPath(params.fastq_files)
-  .splitFastq( by: params.readsChunkSize, file:true )
-  .set{readsChunk}
-  
-  //assign chunks of reads to UMIs
-  readsUMIsAssignment(candidateUMIsFiltering.out, readsChunk)
+  //assign reads to UMIs
+  readsUMIsAssignment(candidateUMIsFiltering.out)
 
   //analyze binned reads with the same UMI in parallel: obtain Sample-UMI tuples for each reads chunk
   readsUMIsAssignment.out
