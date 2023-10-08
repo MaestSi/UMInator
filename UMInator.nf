@@ -23,6 +23,9 @@ def helpMessage() {
     --RV_adapter                                                          Reverse adapter sequence
     --FW_primer                                                           Forward primer sequence
     --RV_primer                                                           Reverse primer sequence
+    --minQ                                                                min Q value for reads filtering
+    --minLen                                                              min read length for reads filtering
+    --maxLen                                                              max read length for reads filtering
     --searchLen                                                           Amount of bases at the beginning and end of each read to search for UMIs
     --tolCutadaptErr                                                      Cutadapt maximum allowed error rate [0, 1]
     --minLenOvlp                                                          Min overlap between read and adapter
@@ -55,7 +58,29 @@ if (params.help) {
 Channel
     .fromPath(params.fastq_files)
     .map {tuple( it.name.split('\\.')[0], it )}
-    .set{inputFiles_candidateUMIsExtraction}
+    .set{inputFiles_readsFiltering}
+
+// readsFiltering
+process readsFiltering {
+  input:
+    tuple val(sample), val(fastq)
+  output:
+    tuple val(sample), val(fastq)
+  script:
+  if(params.readsFiltering)
+  """
+    mkdir -p ${params.results_dir}
+    mkdir -p ${params.results_dir}/readsFiltering
+    mkdir -p ${params.results_dir}/readsFiltering/${sample}
+
+    #filter reads
+    cat ${fastq} | NanoFilt -q ${params.minQ} --length ${params.minLen} --maxlength ${params.maxLen} > ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
+  """
+  else
+  """
+    cp ${fastq} ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
+  """
+}
     
 // candidateUMIsExtraction
 process candidateUMIsExtraction {
@@ -80,8 +105,8 @@ process candidateUMIsExtraction {
     #obtain first and last bases of reads
     READS_START=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
     READS_END=${params.results_dir}/candidateUMIsExtraction/${sample}/last_${params.searchLen}bp.fastq
-    seqtk trimfq -L ${params.searchLen} ${fastq} > \$READS_START
-    seqtk seq -r ${fastq} | seqtk trimfq -L ${params.searchLen} - | seqtk seq -r - > \$READS_END
+    seqtk trimfq -L ${params.searchLen} ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq > \$READS_START
+    seqtk seq -r ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq | seqtk trimfq -L ${params.searchLen} - | seqtk seq -r - > \$READS_END
     
     #search candidate UMIs with exact length between adapters and primers
     cutadapt -j ${task.cpus} -e ${params.tolCutadaptErr} -O ${params.minLenOvlp} -m ${params.UMILen} -M ${params.UMILen} \
@@ -280,9 +305,12 @@ process readsUMIsAssignment {
     mkdir -p ${params.results_dir}/readsUMIsAssignment/${sample}
     
     readsCurrChunk=\$(realpath readsChunk.fastq)
+    readsCurrChunkFilt=\$(echo \$readsCurrChunk | sed \'s/\\.fastq/_filt.fastq/\')
+     
+    cat \$readsCurrChunk | NanoFilt -q ${params.minQ} --length ${params.minLen} --maxlength ${params.maxLen} > \$readsCurrChunkFilt
 
     #read the current chunk of reads and, if a read matches a single UMI, assign it to it
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunk map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=\$readsCurrChunkFilt map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
 
     #extract all UMIs
     UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
@@ -444,8 +472,11 @@ process primersTrimming {
 }
 
 workflow {
+  //filter reads
+  readsFiltering(inputFiles_readsFiltering)
+
   //extract candidate UMIs
-  candidateUMIsExtraction(inputFiles_candidateUMIsExtraction)
+  candidateUMIsExtraction(readsFiltering.out)
   
   //filter candidate UMIs to buid db of high-confidence UMIs
   candidateUMIsFiltering(candidateUMIsExtraction.out)
