@@ -106,7 +106,6 @@ Raw reads, consensus sequences obtained with UMInator and consensus sequences ob
 
 <p align="center">
   <img src="Figures/UMInator_benchmarking.png" alt="drawing" width="900" title="UMInator_pipeline_benchmarking">
-  <figcaption>**A**Raw reads alignment identity; **B**Consensus sequences alignment identity; **C**Species-level taxonomy abundance; **D**Species-level correlation between UMInator and longread_umi consensus sequences.</figcaption>
 </p>
 
 ## Citation
