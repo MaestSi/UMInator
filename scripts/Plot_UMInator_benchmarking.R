@@ -157,4 +157,4 @@ ggarrange(p1, p2, p3, p4,
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 
-ggsave("UMInator_benchmarking.pdf", width = 6, height = 6)  
+ggsave("UMInator_benchmarking.png", width = 6, height = 6)  
