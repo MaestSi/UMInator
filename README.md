@@ -81,6 +81,33 @@ nextflow -c UMInator.conf run UMInator.nf \
 --medaka_model=r941_min_high_g330 \
 -profile docker
 ```
+## Pipeline benchmarking
+
+The UMInator pipeline was benchmarked on [Zymo mock rRNA data](https://www.ebi.ac.uk/ena/data/view/ERR3813594) available from [Karst et al.](https://www.nature.com/articles/s41592-020-01041-y) with the following command:
+
+```
+nextflow -c UMInator.conf run UMInator.nf -bg \
+--FW_adapter="CAAGCAGAAGACGGCATACGAGAT" \
+--RV_adapter="AATGATACGGCGACCACCGAGATC" \
+--FW_primer="AGRGTTYGATYMTGGCTCAG" \
+--RV_primer="CGACATCGAGGTGCCAAAC" \
+--fastq_files=/home/simone/pipelines/longread_umi/test_data/ERR3336963_1.fastq \
+--results_dir=/home/simone/pipelines/UMInator/ERR3336963_1_output_filtered \
+--minQ=7 \
+--minLen=3000 \
+--maxLen=6000 \
+--min_UMI_freq=30 \
+--maxF=10 \
+--scripts_dir=/home/simone/pipelines/UMInator/scripts \
+--medaka_model=r941_min_high_g330 \
+-profile docker
+```
+Raw reads, consensus sequences obtained with UMInator and consensus sequences obtained with [longread_umi](https://github.com/SorenKarst/longread_umi) supported by at least 30 reads were analysed with [MetaBlast](https://github.com/MaestSi/MetaBlast) using NCBI nt database as a reference. The relative abundance of species in the community and alignment identities were extracted from MetaBlast results and plotted. Overall, consensus sequences obtained with both pipelines had alignment identities with median >99.9% VS 92.7% of raw reads, and recapitulated relative abundance at the species level with high correlation.
+
+<p align="center">
+  <img src="Figures/UMInator_pipeline_benchmarking.png" alt="drawing" width="900" title="UMInator_pipeline_benchmarking">
+  <figcaption>**A**Raw reads alignment identity; **B**Consensus sequences alignment identity; **C**Species-level taxonomy abundance; **D**Species-level correlation between UMInator and longread_umi consensus sequences.</figcaption>
+</p>
 
 ## Citation
 
