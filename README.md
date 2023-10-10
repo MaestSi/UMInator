@@ -105,7 +105,7 @@ nextflow -c UMInator.conf run UMInator.nf -bg \
 Raw reads, consensus sequences obtained with UMInator and consensus sequences obtained with [longread_umi](https://github.com/SorenKarst/longread_umi) supported by at least 30 reads were analysed with [MetaBlast](https://github.com/MaestSi/MetaBlast) using NCBI nt database as a reference. The relative abundance of species in the community and alignment identities were extracted from MetaBlast results and plotted. Overall, consensus sequences obtained with both pipelines had alignment identities with median >99.9% VS 92.7% of raw reads, and recapitulated relative abundance at the species level with high correlation.
 
 <p align="center">
-  <img src="Figures/UMInator_pipeline_benchmarking.png" alt="drawing" width="900" title="UMInator_pipeline_benchmarking">
+  <img src="Figures/UMInator_benchmarking.png" alt="drawing" width="900" title="UMInator_pipeline_benchmarking">
   <figcaption>**A**Raw reads alignment identity; **B**Consensus sequences alignment identity; **C**Species-level taxonomy abundance; **D**Species-level correlation between UMInator and longread_umi consensus sequences.</figcaption>
 </p>
 
