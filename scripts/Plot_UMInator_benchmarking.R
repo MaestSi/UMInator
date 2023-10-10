@@ -135,7 +135,7 @@ df2 <- data.frame(Species = factor(c(names(raw_reads_species_counts), names(UMIn
 p3 <- ggplot(df2, aes(x = Species, y = Counts, fill = Pipeline)) +
   geom_bar(position="dodge", stat="identity", alpha = 0.8) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  ylab("Relative abundance") +
+  ylab("Rel. frequency") +
   theme(axis.text=element_text(size=8)) + 
   theme(axis.title=element_text(size=8)) 
 
