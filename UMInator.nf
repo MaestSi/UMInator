@@ -510,5 +510,5 @@ workflow {
   consensusPolishing(draftConsensusCalling.out)
   
   //perform primers trimming
-  primersTrimming(consensusPolishing.out.collect().map{ it -> it[0]})
+  primersTrimming(consensusPolishing.out.groupTuple(by:0).map {it -> it[0]})
 }
