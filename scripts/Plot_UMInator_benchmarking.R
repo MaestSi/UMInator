@@ -148,7 +148,7 @@ p4 <- ggplot(df2_consensus, aes(x = UMInator, y = longread_umi, label = Species)
   geom_point(size = 5, aes(colour = Species)) +
   geom_text(hjust = 0.5, vjust = 1, angle = 0, size = 1.7) +
   geom_smooth(method = lm, color = "black") +
-  geom_text(x = 0, y = 0.3, label = lm_eqn(df2_consensus[, c(2, 3)]), parse = TRUE) +
+  geom_text(x = -0.1, y = 0.27, label = lm_eqn(df2_consensus[, c(2, 3)]), parse = TRUE) +
   theme(legend.position = "none") +
   xlim(c(-0.2, 0.5))
 
