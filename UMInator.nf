@@ -73,11 +73,11 @@ process readsFiltering {
     mkdir -p ${params.results_dir}/readsFiltering/${sample}
 
     #filter reads
-    cat ${fastq} | NanoFilt -q ${params.minQ} --length ${params.minLen} --maxlength ${params.maxLen} > ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
+    zcat ${fastq} | NanoFilt -q ${params.minQ} --length ${params.minLen} --maxlength ${params.maxLen} > ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
   """
   else
   """
-    cp ${fastq} ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
+    zcat ${fastq} > ${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq
   """
 }
     
