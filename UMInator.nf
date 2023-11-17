@@ -193,12 +193,12 @@ process candidateUMIsFiltering {
     samtools view -F 4 - \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sam
 
-    #retain only UMIs from the database that are supported by at least 3 reads
+    #retain only UMIs from the database that are supported by at least 3 candidate UMIS
     cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_tmp1.sam \
     | cut -f3 | sort | uniq -c | sort -nr | awk \'BEGIN {FS=\" \"} { if ( \$1 > 2 ) print "\t"\$2"\t"}\' \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3.txt
 
-    #extract from fasta only UMIs supported by at least 3 reads
+    #extract from fasta only UMIs supported by at least 3 candidate UMIs
     cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3.txt \
     | cut -f2 > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_candidates_map_supp3_noTab.txt
 
@@ -231,6 +231,26 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1_rv.fasta \
     > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta
 
+  """
+  else
+  """
+    echo "Skipped"
+  """
+}
+
+//readsUMIsAssignment
+process readsUMIsAssignment {
+  maxForks params.maxF
+  input:
+    val sample
+  output:
+    tuple val(sample), env(UMI_all)
+  script:
+  if(params.readsUMIsAssignment)
+  """
+    mkdir -p ${params.results_dir}/readsUMIsAssignment
+    mkdir -p ${params.results_dir}/readsUMIsAssignment/${sample}
+
     #align high-quality UMIs (part 1 and part 2) to the terminal portion of reads
     READS_START_FQ=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fastq
     READS_START_FA=${params.results_dir}/candidateUMIsExtraction/${sample}/first_${params.searchLen}bp.fasta
@@ -253,15 +273,15 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta \
     -n \$maxDiffSingle \
     -t ${task.cpus} \
-    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sai
+    -N > ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p1.sai
 
     bwa samse \
     -n 10000000 \
     \$READS_START_FA \
-    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sai \
+    ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p1.sai \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.fasta | \
     samtools view -F 20 - \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sam
+    > ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p1.sam
 
     #map UMI_db_p2 to reads end
     bwa aln \
@@ -269,43 +289,24 @@ process candidateUMIsFiltering {
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta \
     -n \$maxDiffSingle \
     -t ${task.cpus} \
-    -N > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sai
+    -N > ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p2.sai
 
     bwa samse \
     -n 10000000 \
     \$READS_END_FA \
-    ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sai \
+    ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p2.sai \
     ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.fasta | \
     samtools view -F 20 - \
-    > ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sam
+    > ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p2.sam
 
     #filter alignments
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Filter_UMIs.R alignment_file_1=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p1.sam alignment_file_2=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_db_p2.sam map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt max_NM_mean=${params.max_NM_mean} max_NM_sd=${params.max_NM_sd}
-  """
-  else
-  """
-    echo "Skipped"
-  """
-}
-
-//readsUMIsAssignment
-process readsUMIsAssignment {
-  maxForks params.maxF
-  input:
-    val sample
-  output:
-    tuple val(sample), env(UMI_all)
-  script:
-  if(params.readsUMIsAssignment)
-  """
-    mkdir -p ${params.results_dir}/readsUMIsAssignment
-    mkdir -p ${params.results_dir}/readsUMIsAssignment/${sample}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Filter_UMIs.R alignment_file_1=${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p1.sam alignment_file_2=${params.results_dir}/readsUMIsAssignment/${sample}/UMI_db_p2.sam map_file=${params.results_dir}/readsUMIsAssignment/${sample}/UMI_read_map.txt max_NM_mean=${params.max_NM_mean} max_NM_sd=${params.max_NM_sd}
 
     #read the current fastq file and, if a read matches a single UMI, assign it to it
-    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq map_file=${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
+    /opt/conda/envs/UMInator_env/bin/Rscript ${params.scripts_dir}/Bin_reads.R fastq_file=${params.results_dir}/readsFiltering/${sample}/${sample}_filtered.fastq map_file=${params.results_dir}/readsUMIsAssignment/${sample}/UMI_read_map.txt outdir=${params.results_dir}/readsUMIsAssignment/${sample}
 
     #extract all UMIs
-    UMI_all_tmp=\$(cat ${params.results_dir}/candidateUMIsFiltering/${sample}/UMI_read_map.txt | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
+    UMI_all_tmp=\$(cat ${params.results_dir}/readsUMIsAssignment/${sample}/UMI_read_map.txt | cut -f2 | sed \'s/^centroid=//\' | sed \'s/;seqs=.*//\' | sort | uniq)
 
     #add sample name before UMI ID
     sn=${sample}
