@@ -91,14 +91,14 @@ nextflow -c UMInator.conf run UMInator.nf -bg \
 --RV_adapter="AATGATACGGCGACCACCGAGATC" \
 --FW_primer="AGRGTTYGATYMTGGCTCAG" \
 --RV_primer="CGACATCGAGGTGCCAAAC" \
---fastq_files=/home/simone/pipelines/longread_umi/test_data/ERR3336963_1.fastq \
---results_dir=/home/simone/pipelines/UMInator/ERR3336963_1_output_filtered \
+--fastq_files=/path/to/ERR3336963_1.fastq \
+--results_dir=/path/to/ERR3336963_1_UMInator_output \
 --minQ=7 \
 --minLen=3000 \
 --maxLen=6000 \
 --min_UMI_freq=30 \
 --maxF=10 \
---scripts_dir=/home/simone/pipelines/UMInator/scripts \
+--scripts_dir=/path/to/UMInator/scripts \
 --medaka_model=r941_min_high_g330 \
 -profile docker
 ```
