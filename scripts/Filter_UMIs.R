@@ -42,7 +42,7 @@ Reformat_alignment <- function(alignment, max_NM_mean, max_NM_sd) {
     sec_al_read_name <- gsub(x = gsub(x = sec_al, pattern = "XA:Z:", replacement = ""), pattern = ",.*", replacement = "")
     sec_al_NM <- as.numeric(gsub(x = sec_al, pattern = ".*,", replacement = ""))
     NM_mean <- mean(c(prim_al_NM, sec_al_NM))
-    NM_sd <- sd(c(prim_al_NM, sec_al_NM))
+    NM_sd <- ifelse(is.na(sd(c(prim_al_NM, sec_al_NM))), 100000, sd(c(prim_al_NM, sec_al_NM))) 
     #if the average number of NM per UMI is < max_NM_mean and the sd of the number of NM per UMI is < max_NM_sd, keep the UMI
     if (NM_mean < max_NM_mean && NM_sd < max_NM_sd) {
       maxDiff_flag <- "keep"
