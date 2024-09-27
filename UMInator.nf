@@ -447,8 +447,8 @@ process primersTrimming {
     if [[ -f "${params.results_dir}/primersTrimming/${sample}/${sample}_consensus_polished.fasta" ]]; then
       cutadapt -j ${task.cpus} -e 0 \
       --discard-untrimmed --match-read-wildcards \
-      -g ${params.FW_primer} -g \$RV_primer_R  \
-      -a ${params.RV_primer} -a \$FW_primer_R \
+      -g ${params.FW_primer} -g ${params.RV_primer}  \
+      -a \$FW_primer_R -a \$RV_primer_R \
       -m ${params.minLen} -M ${params.maxLen} \
       -o ${params.results_dir}/primersTrimming/${sample}/${sample}_consensus_polished_primersTrimmed.fasta \
       ${params.results_dir}/primersTrimming/${sample}/${sample}_consensus_polished.fasta
